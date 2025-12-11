@@ -14,7 +14,7 @@ The Legal Citation Machine is built using a **4-step approach**:
 ---
 
 ## Table of Contents
-
+- [Team Members](#team-members)
 - [Prerequisites](#prerequisites)
 - [Project Structure](#project-structure)
 - [Step 1: Knowledge Graph Construction](#step-1-knowledge-graph-construction)
@@ -23,6 +23,15 @@ The Legal Citation Machine is built using a **4-step approach**:
 - [Step 4: Web UI Development](#step-4-web-ui-development)
 - [Running the Application](#running-the-application)
 - [Configuration](#configuration)
+
+---
+
+## Team Members
+📩 **Bryan Guan** — [bryguan@berkeley.edu](mailto:bryguan@berkeley.edu)
+📩 **Hunter Tonn** — [hunter.tonn@berkeley.edu](mailto:hunter.tonn@berkeley.edu)
+📩 **Kent Bourgoing** — [kent1bp@berkeley.edu](mailto:kent1bp@berkeley.edu)
+📩 **Simran Gill** — [simran.gill@berkeley.edu](mailto:simran.gill@berkeley.edu)
+📩 **Xueying (Wendy) Tian** — [xtian9@berkeley.edu](mailto:xtian9@berkeley.edu)
 
 ---
 
@@ -115,11 +124,11 @@ This step extracts legal case data and builds a Neo4j knowledge graph with cases
 - Downloads cases that cite ADAH cases
 - Handles rate limiting and retries
 
-### 1.3 Build Neo4j Graph
+### 1.3 Format the Cases Ready for Neo4j Aura 
 
 **Notebook:** `JSON_to_CSV_Converter.ipynb`
 
-- Converts JSON case data to structured format
+- Converts JSON case data to a structured format
 - Creates Neo4j nodes:
   - `Case` nodes with properties (name, citation, decision_date, court, etc.)
   - `Court` nodes
@@ -130,6 +139,7 @@ This step extracts legal case data and builds a Neo4j knowledge graph with cases
   - `(:Case)-[:HEARD_IN]->(:Court)` - court relationships
   - `(:Case)-[:UNDER_JURISDICTION]->(:Jurisdiction)` - jurisdiction relationships
   - `(:Case)-[:HAS_OPINION_CHUNK]->(:OpinionChunk)` - opinion text chunks
+- Upload the csv files manually through the Neo4j Aura platform for knowledge graph construction
 
 ### 1.4 Generate Case Summaries
 
@@ -209,7 +219,7 @@ Each notebook uses a different LLM to classify citation treatment:
 **How to Run:**
 
 1. Run `Snippet_Retriever.ipynb` to extract citation snippets
-2. Choose one of the classifier notebooks (Claude recommended for best accuracy)
+2. Choose one of the classifier notebooks (Ensemble recommended for best accuracy)
 3. Run the classifier to label all citation edges
 4. Use `evaluation_pipeline.ipynb` to evaluate performance
 
@@ -456,11 +466,10 @@ The case labeler supports extensive configuration. See `Case Classifier/case_lab
 ---
 
 ## Project Summary
-
 - **Data Source:** Cases extracted from ADAH (Americans with Disabilities Act Handbook) and CourtListener
-- **Graph Database:** Neo4j 5.x
+- **Graph Database:** Neo4j
 - **LLM:** Amazon Bedrock (Claude 3.5 Sonnet, Mistral, Llama3, Titan)
 - **UI Framework:** Streamlit
-- **RAG Framework:** LangChain + LangGraph
-
+- **GraphRAG Framework:** LangChain + LangGraph
 ---
+
