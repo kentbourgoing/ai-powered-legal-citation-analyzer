@@ -27,12 +27,14 @@ The Legal Citation Machine is built using a **4-step approach**:
 ---
 
 ## Team Members
-📩 **Bryan Guan** — [bryguan@berkeley.edu](mailto:bryguan@berkeley.edu)  
-📩 **Hunter Tonn** — [hunter.tonn@berkeley.edu](mailto:hunter.tonn@berkeley.edu)  
-📩 **Kent Bourgoing** — [kent1bp@berkeley.edu](mailto:kent1bp@berkeley.edu)  
-📩 **Simran Gill** — [simran.gill@berkeley.edu](mailto:simran.gill@berkeley.edu)  
-📩 **Xueying (Wendy) Tian** — [xtian9@berkeley.edu](mailto:xtian9@berkeley.edu)  
-
+| Name | Email | LinkedIn |
+|------|--------|----------|
+| **Bryan Guan** | 📩 [bryguan@berkeley.edu](mailto:bryguan@berkeley.edu) | 🔗 [LinkedIn](https://www.linkedin.com/in/bryguan/) |
+| **Hunter Tonn** | 📩 [hunter.tonn@berkeley.edu](mailto:hunter.tonn@berkeley.edu) | 🔗 [LinkedIn](https://www.linkedin.com/in/hunter-tonn/) |
+| **Kent Bourgoing** | 📩 [kent1bp@berkeley.edu](mailto:kent1bp@berkeley.edu) | 🔗 [LinkedIn](https://www.linkedin.com/in/kent-bourgoing-124444168/) |
+| **Simran Gill** | 📩 [simran.gill@berkeley.edu](mailto:simran.gill@berkeley.edu) | 🔗 [LinkedIn](https://www.linkedin.com/in/simran-k-gill/) |
+| **Xueying (Wendy) Tian** | 📩 [xtian9@berkeley.edu](mailto:xtian9@berkeley.edu) | 🔗 [LinkedIn](https://www.linkedin.com/in/wendy) |
+  
 ---
 
 ## Prerequisites
