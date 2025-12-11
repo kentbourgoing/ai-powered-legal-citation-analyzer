@@ -27,11 +27,11 @@ The Legal Citation Machine is built using a **4-step approach**:
 ---
 
 ## Team Members
-📩 **Bryan Guan** — [bryguan@berkeley.edu](mailto:bryguan@berkeley.edu)
-📩 **Hunter Tonn** — [hunter.tonn@berkeley.edu](mailto:hunter.tonn@berkeley.edu)
-📩 **Kent Bourgoing** — [kent1bp@berkeley.edu](mailto:kent1bp@berkeley.edu)
-📩 **Simran Gill** — [simran.gill@berkeley.edu](mailto:simran.gill@berkeley.edu)
-📩 **Xueying (Wendy) Tian** — [xtian9@berkeley.edu](mailto:xtian9@berkeley.edu)
+📩 **Bryan Guan** — [bryguan@berkeley.edu](mailto:bryguan@berkeley.edu)  
+📩 **Hunter Tonn** — [hunter.tonn@berkeley.edu](mailto:hunter.tonn@berkeley.edu)  
+📩 **Kent Bourgoing** — [kent1bp@berkeley.edu](mailto:kent1bp@berkeley.edu)  
+📩 **Simran Gill** — [simran.gill@berkeley.edu](mailto:simran.gill@berkeley.edu)  
+📩 **Xueying (Wendy) Tian** — [xtian9@berkeley.edu](mailto:xtian9@berkeley.edu)  
 
 ---
 
