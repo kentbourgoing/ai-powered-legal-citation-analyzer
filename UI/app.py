@@ -17,11 +17,11 @@ import streamlit.components.v1 as components
 # ---------------------- Import case labeler ----------------------
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-CASE_LABELING_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "Case Labeling"))
+CASE_LABELING_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "Case Classifier"))
 if CASE_LABELING_DIR not in sys.path:
     sys.path.append(CASE_LABELING_DIR)
 
-from case_labeler_ctw import label_all_cases, VALID_JURISDICTIONS  # noqa: E402
+from case_labeler import label_all_cases, VALID_JURISDICTIONS  # noqa: E402
 
 # GraphRAG + agents (chatbot)
 from graph_rag_agents import multi_tool_agent, invoke_agent_text  # noqa: E402
