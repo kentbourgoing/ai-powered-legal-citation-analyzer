@@ -104,68 +104,61 @@ capstone git/
 ---
 
 ## Step 1: Knowledge Graph Construction
-
 **Location:** `Knowledge Graph/`
 
 This step extracts legal case data and builds a Neo4j knowledge graph with cases, citations, and necessary attributes.
 
 ### 1.1 Extract Case Names from PDF
-
 **Notebook:** `ADAH_API_Extract.ipynb`
-
 - Extracts clean ADA case names from the ADAH (Americans with Disabilities Act Handbook) PDF
 - Normalizes case names (handles `v.`, `vs.`, punctuation variations)
 - Outputs a list of case names to `ada_case_names_only.txt`
 
 ### 1.2 Fetch Cases from CourtListener API
-
 **Notebook:** `ADAH_API_Extract.ipynb`
-
 - Fetches ADAH "seed" cases by name from CourtListener API
 - Downloads cases cited by ADAH cases
 - Downloads cases that cite ADAH cases
 - Handles rate limiting and retries
 
 ### 1.3 Format the Cases Ready for Neo4j Aura 
-
 **Notebook:** `JSON_to_CSV_Converter.ipynb`
-
-- Converts JSON case data to a structured format
-- Creates Neo4j nodes:
-  - `Case` nodes with properties (name, citation, decision_date, court, etc.)
-  - `Court` nodes
-  - `Jurisdiction` nodes
-  - `OpinionChunk` nodes (for long opinion text)
-- Creates relationships:
-  - `(:Case)-[:CITES_TO]->(:Case)` - citation relationships
-  - `(:Case)-[:HEARD_IN]->(:Court)` - court relationships
-  - `(:Case)-[:UNDER_JURISDICTION]->(:Jurisdiction)` - jurisdiction relationships
-  - `(:Case)-[:HAS_OPINION_CHUNK]->(:OpinionChunk)` - opinion text chunks
-- Upload the csv files manually through the Neo4j Aura platform for knowledge graph construction
+- Converts JSON case data to CSV files for Neo4j import
+- Prepares the following CSV files:
+  - `cases.csv` - Case nodes with properties (id, name, citation, decision_date, court_id, jurisdiction_id, etc.)
+  - `courts.csv` - Court nodes with court_level (1-5)
+  - `jurisdictions.csv` - Jurisdiction nodes
+  - `cites_to.csv` - Citation relationships between cases
+  - `opinion_chunks.csv` - OpinionChunk nodes (for long opinion text, if using chunked mode)
+  - `case_opinion_edges.csv` - Relationships linking cases to opinion chunks
+- These CSV files define the Neo4j graph structure:
+  - **Nodes:** `Case`, `Court`, `Jurisdiction`, `OpinionChunk`
+  - **Relationships:**
+    - `(:Case)-[:CITES_TO]->(:Case)` - citation relationships
+    - `(:Case)-[:HEARD_IN]->(:Court)` - court relationships
+    - `(:Case)-[:UNDER_JURISDICTION]->(:Jurisdiction)` - jurisdiction relationships
+    - `(:Case)-[:HAS_OPINION_CHUNK]->(:OpinionChunk)` - opinion text chunks
+- **Important:** Upload the CSV files manually through the Neo4j Aura Data Importer to construct the knowledge graph
+- **Note:** The `JSON_to_CSV_Converter.ipynb` notebook contains detailed instructions on the import schema and how to build the graph in Neo4j Aura
 
 ### 1.4 Generate Case Summaries
-
 **Notebook:** `Summarization_Pipeline.ipynb`
-
 - Uses Amazon Bedrock (Mistral) to generate single-paragraph summaries
 - Writes summaries to `(:Case).opinion_summary`
 - Handles long opinions by chunking with token-based splitting
 
 ### 1.5 Exploratory Data Analysis
-
 **Notebook:** `EDA.ipynb`
-
 - Analyze the graph structure
 - Check data quality
 - Visualize relationships
 
 **How to Run:**
-
 1. Start with `ADAH_API_Extract.ipynb` to extract case names and fetch data
-2. Run `JSON_to_CSV_Converter.ipynb` to build the Neo4j graph
-3. Run `Summarization_Pipeline.ipynb` to generate case summaries
-4. Use `EDA.ipynb` to explore your data
-
+2. Run `JSON_to_CSV_Converter.ipynb` to generate CSV files
+3. Manually upload the CSV files to Neo4j Aura using the Data Importer (follow instructions in the notebook)
+4. Run `Summarization_Pipeline.ipynb` to generate case summaries
+5. Use `EDA.ipynb` to explore your data
 ---
 
 ## Step 2: Citation Classification
