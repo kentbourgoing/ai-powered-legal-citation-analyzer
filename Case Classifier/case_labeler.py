@@ -489,55 +489,223 @@ def _build_label_rationale(
     label_thresholds: Dict[str, float],
     priority_order: List[str],
 ) -> str:
+    """
+    Build the human-readable rationale string for one case.
+    Uses human-readable court names instead of numeric court levels.
+    Designed so that lawyers can understand the reasoning without
+    needing to know implementation details.
+    """
     lines: List[str] = []
-    
+
+    # -----------------------------
+    # 1. Case-level label and edge case with no citations
+    # -----------------------------
     if decision_level is None or total_cites == 0:
-        return f"The case '{case_name}' is labeled '{case_label}'. The case has no incoming citations with a known court level."
+        lines.append(
+            f"The case '{case_name}' is labeled '{case_label}'."
+        )
+        lines.append(
+            "The case has no incoming citations with a known court level, "
+            "so there is no clear precedential signal to tilt it toward a "
+            "favorable or unfavorable treatment."
+        )
+        return " ".join(lines)
 
-    decision_court_name = COURT_LEVEL_NAMES.get(decision_level, f"Court level {decision_level}")
-    
-    # 1. Summary
+    decision_court_name = COURT_LEVEL_NAMES.get(
+        decision_level, f"Court level {decision_level}"
+    )
+
+    # Short, human-readable summary tied to the deciding court
     if driver_label == "Positive":
-        s = f"The case '{case_name}' is labeled '{case_label}' based on citations from the {decision_court_name}, where the balance is predominantly positive."
+        summary_sentence = (
+            f"The case '{case_name}' is labeled '{case_label}' based on citations "
+            f"from the {decision_court_name}, where the balance of weighted "
+            "citations is predominantly positive."
+        )
     elif driver_label == "Negative":
-        s = f"The case '{case_name}' is labeled '{case_label}' based on citations from the {decision_court_name}, where the balance is predominantly negative."
+        summary_sentence = (
+            f"The case '{case_name}' is labeled '{case_label}' based on citations "
+            f"from the {decision_court_name}, where the balance of weighted "
+            "citations is predominantly negative."
+        )
     elif driver_label == "Neutral":
-        s = f"The case '{case_name}' is labeled '{case_label}' based on citations from the {decision_court_name}, where signals are neutral."
+        summary_sentence = (
+            f"The case '{case_name}' is labeled '{case_label}' based on citations "
+            f"from the {decision_court_name}, where the weighted signals are "
+            "neither strongly positive nor strongly negative and instead cluster "
+            "around a neutral treatment."
+        )
     elif driver_label == "Unknown":
-        s = f"The case '{case_name}' is labeled '{case_label}' because most citations at the {decision_court_name} are 'Unknown'."
+        summary_sentence = (
+            f"The case '{case_name}' is labeled '{case_label}' because most of the "
+            f"weighted citations to this case at the {decision_court_name} are "
+            "labeled as 'Unknown'."
+        )
     else:
-        s = f"The case '{case_name}' is labeled '{case_label}' because signals are balanced across courts."
-    lines.append(s)
+        # No single label met its threshold; treated as balanced
+        summary_sentence = (
+            f"The case '{case_name}' is labeled '{case_label}' because, across the "
+            "courts with citations, no single treatment category clearly exceeds "
+            "its required share; the precedential signals are balanced."
+        )
 
-    # 2. Counts
-    lines.append(f"The case has {total_cites} incoming citation(s).")
+    lines.append(summary_sentence)
+
+    # -----------------------------
+    # 2. How many citations and from which courts
+    # -----------------------------
+    lines.append(
+        f"The case has {total_cites} incoming citation(s)."
+    )
+
+    # Counts by court, using court names
     level_fragments = []
     for lvl in range(1, 6):
         lvl_total = per_level_counts.get(lvl, {}).get("total", 0)
         court_name = COURT_LEVEL_NAMES.get(lvl, f"Court level {lvl}")
         level_fragments.append(f"{court_name}: {lvl_total}")
-    lines.append("By court: " + ", ".join(level_fragments) + ".")
+    levels_str = ", ".join(level_fragments)
+    lines.append(
+        f"By court, citations are distributed as follows: {levels_str}."
+    )
 
-    # 3. Decision Details
+    # -----------------------------
+    # 3. Details at the deciding court
+    # -----------------------------
     dec_metrics = per_level_metrics.get(decision_level, {})
     dec_counts = per_level_counts.get(decision_level, {})
     dec_props = dec_metrics.get("proportions", {})
-    
-    share_str_parts = []
-    keys = ["Positive", "Negative", "Neutral", "Unknown"] if include_unknown else ["Positive", "Negative", "Neutral"]
-    for k in keys:
-        share_str_parts.append(f"{k}={dec_props.get(k, 0.0):.2f}")
-    share_str = ", ".join(share_str_parts)
 
-    lines.append(f"At {decision_court_name} (Total: {dec_counts.get('total', 0)}), weighted proportions: {share_str}.")
+    dec_total = dec_counts.get("total", 0)
+    c_pos = dec_counts.get("Positive", 0)
+    c_neg = dec_counts.get("Negative", 0)
+    c_neu = dec_counts.get("Neutral", 0)
+    c_unk = dec_counts.get("Unknown", 0)
 
-    # 4. Thresholds explanation
-    thr_parts = [f"Pos>={label_thresholds['Pos_p']:.2f}", f"Neg>={label_thresholds['Neg_p']:.2f}", f"Neu>={label_thresholds['Neu_p']:.2f}"]
+    p_pos = dec_props.get("Positive", 0.0)
+    p_neg = dec_props.get("Negative", 0.0)
+    p_neu = dec_props.get("Neutral", 0.0)
+    p_unk = dec_props.get("Unknown", 0.0)
+
     if include_unknown:
-        thr_parts.append(f"Unk>={label_thresholds['Unk_p']:.2f}")
-    
-    priority_str = " > ".join(priority_order) if priority_order else "Standard"
-    lines.append(f"Thresholds used: {', '.join(thr_parts)}. Priority: {priority_str}.")
+        share_str = (
+            f"Positive={p_pos:.2f}, Negative={p_neg:.2f}, "
+            f"Neutral={p_neu:.2f}, Unknown={p_unk:.2f}"
+        )
+        count_str = (
+            f"{c_pos} positive, {c_neg} negative, "
+            f"{c_neu} neutral, {c_unk} unknown"
+        )
+    else:
+        share_str = (
+            f"Positive={p_pos:.2f}, Negative={p_neg:.2f}, Neutral={p_neu:.2f}"
+        )
+        count_str = (
+            f"{c_pos} positive, {c_neg} negative, {c_neu} neutral"
+        )
+
+    if driver_label in {"Positive", "Negative", "Neutral", "Unknown"}:
+        decision_clause = (
+            f"At the {decision_court_name}, the label is driven by "
+            f"{driver_label.lower()} treatment: based on {dec_total} citation(s) "
+            f"at this court, the weighted proportions are {share_str}, coming from "
+            f"{count_str} citation(s)."
+        )
+    else:
+        decision_clause = (
+            f"At the {decision_court_name}, based on {dec_total} citation(s), "
+            f"the weighted proportions are {share_str}, coming from {count_str} "
+            "citation(s), but no single label reaches its required share, so the "
+            "case is treated as 'Moderate' overall."
+        )
+
+    lines.append(decision_clause)
+
+    # -----------------------------
+    # 4. If we moved down from a higher court, explain why
+    # -----------------------------
+    levels_with_cites = [
+        lvl for lvl in range(1, 6)
+        if per_level_counts.get(lvl, {}).get("total", 0) > 0
+    ]
+
+    if used_lower_level and levels_with_cites:
+        highest_level = min(levels_with_cites)
+        if decision_level != highest_level:
+            highest_court_name = COURT_LEVEL_NAMES.get(
+                highest_level, f"Court level {highest_level}"
+            )
+            hl_metrics = per_level_metrics.get(highest_level, {})
+            hl_props = hl_metrics.get("proportions", {})
+            hl_denom = hl_metrics.get("denom", 0.0)
+
+            if hl_denom > 0.0:
+                hl_p_pos = hl_props.get("Positive", 0.0)
+                hl_p_neg = hl_props.get("Negative", 0.0)
+                hl_p_neu = hl_props.get("Neutral", 0.0)
+                hl_p_unk = hl_props.get("Unknown", 0.0)
+
+                if include_unknown:
+                    hl_share_str = (
+                        f"Positive={hl_p_pos:.2f}, Negative={hl_p_neg:.2f}, "
+                        f"Neutral={hl_p_neu:.2f}, Unknown={hl_p_unk:.2f}"
+                    )
+                else:
+                    hl_share_str = (
+                        f"Positive={hl_p_pos:.2f}, Negative={hl_p_neg:.2f}, "
+                        f"Neutral={hl_p_neu:.2f}"
+                    )
+
+                lines.append(
+                    f"At the {highest_court_name} level (the highest court that cites this case), "
+                    f"the weighted proportions are {hl_share_str}. "
+                    "Because no single treatment label at that court met its configured threshold, "
+                    f"the algorithm looked to the next lower court and ultimately relied on the "
+                    f"{decision_court_name}, where the distribution shown above provided a clearer "
+                    "signal for the final label."
+                )
+            else:
+                lines.append(
+                    f"The highest court with citations is the {highest_court_name}, "
+                    "but there were not enough labeled citations at that level to meet any "
+                    f"threshold, so the algorithm instead relied on citations from the "
+                    f"{decision_court_name} to determine the label."
+                )
+
+    # -----------------------------
+    # 5. How thresholds and weighting are applied
+    # -----------------------------
+    pos_thr = label_thresholds["Pos_p"]
+    neg_thr = label_thresholds["Neg_p"]
+    neu_thr = label_thresholds["Neu_p"]
+    unk_thr = label_thresholds["Unk_p"]
+
+    thr_parts = [
+        f"Positive >= {pos_thr:.2f}",
+        f"Negative >= {neg_thr:.2f}",
+        f"Neutral >= {neu_thr:.2f}",
+    ]
+    if include_unknown:
+        thr_parts.append(f"Unknown >= {unk_thr:.2f}")
+    thr_str = ", ".join(thr_parts)
+
+    if priority_order:
+        priority_str = " > ".join(priority_order)
+        lines.append(
+            "At each court, the model uses time- and jurisdiction-weighted citation counts "
+            "to compute the share of positive, negative, neutral (and, if included, unknown) "
+            "treatment. A label can drive the case outcome at that court only if its weighted "
+            f"share meets its configured threshold. For this run, the share thresholds are: {thr_str}. "
+            f"If more than one label meets its threshold, the priority order "
+            f"({priority_str}) is used to select the controlling label."
+        )
+    else:
+        lines.append(
+            "At each court, the model uses time- and jurisdiction-weighted citation counts "
+            "to compute the share of positive, negative, and neutral treatment. "
+            f"A label can drive the case outcome at that court only if its weighted share "
+            f"meets its configured threshold. For this run, the share thresholds are: {thr_str}."
+        )
 
     return " ".join(lines)
 
