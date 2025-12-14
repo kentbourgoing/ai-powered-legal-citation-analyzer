@@ -693,7 +693,7 @@ def _build_label_rationale(
         priority_str = " > ".join(priority_order)
         lines.append(
             "At each court, the model uses time- and jurisdiction-weighted citation counts "
-            "to compute the share of positive, negative, neutral (and, if included, unknown) "
+            "to compute the share of positive, negative, neutral, and unknown "
             "treatment. A label can drive the case outcome at that court only if its weighted "
             f"share meets its configured threshold. For this run, the share thresholds are: {thr_str}. "
             f"If more than one label meets its threshold, the priority order "
