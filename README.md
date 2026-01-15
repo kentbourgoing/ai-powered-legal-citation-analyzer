@@ -22,7 +22,7 @@ Users can switch between Case Lookup mode for targeted search and citation analy
 ### Case Detail View - Guy Amir v. St. Louis University
 ![Case Detail View](UI%20Images/case-detail-view.png)
 
-Case Lookup example: The system evaluates "Guy Amir v. St. Louis University" as "Good" law based on 46 incoming citations, primarily from Courts of Appeals. The detailed rationale explains how time-weighted citation analysis and court hierarchy inform the final label.
+The system evaluates "Guy Amir v. St. Louis University" as "Good" law based on 46 incoming citations, primarily from Courts of Appeals. The detailed rationale explains how time-weighted citation analysis and court hierarchy inform the final label.
 
 ### Configuration Panel
 ![Configuration Panel](UI%20Images/configuration-panel.png)
@@ -36,7 +36,7 @@ Chatbot demonstration: This example shows the system identifying cases that crit
 
 ---
 
-## What I Delivered
+## What we delivered
 
 - **Dual-Mode Streamlit Web Application:** Case lookup interface for targeted citation analysis + AI chatbot for natural language legal research
 - **Neo4j Legal Knowledge Graph:** 3,500+ case nodes, 5,500+ citation edges with ADA decisions, opinions, and metadata
@@ -86,7 +86,7 @@ Chatbot demonstration: This example shows the system identifying cases that crit
 ## Repo Structure
 
 ```
-capstone-project-legal-citation/
+ai-powered-legal-citation-analyzer/
 ├── Knowledge Graph/              # Step 1: Build Neo4j knowledge graph
 │   ├── ADAH_API_Extract.ipynb           # Extract case names, fetch CourtListener data
 │   ├── JSON_to_CSV_Converter.ipynb      # Format for Neo4j import
@@ -119,192 +119,382 @@ capstone-project-legal-citation/
 
 ---
 
-## How to Run (Local)
+## Prerequisites
 
-### Prerequisites
-- **Python 3.9+**
-- **Neo4j Database** (local or cloud instance)
-- **AWS Account** with Bedrock access (Claude, Mistral, Llama, Titan models enabled)
-- **CourtListener API Key** (optional, for data extraction)
+Platforms to support data/ LLM/ model training 
 
-### Install Steps
+- **[Neo4j Database](https://neo4j.com/product/)** - local or cloud instance for graph database
+- **[AWS Account](https://aws.amazon.com/console/)**
+  - Amazon Bedrock - LLM provider
+  - Amazon SageMaker Studio 
+  - S3 - data storage
+- **[CourtListener](https://free.law/projects/courtlistener/)** - legal case provider 
+- Required Python packages (install via `pip install -r requirements.txt`)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/kentbourgoing/ai-powered-legal-citation-analyzer.git
-   cd ai-powered-legal-citation-analyzer
-   ```
+### Required Environment Variables
 
-2. **Create virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+Create a `.env` file in the project root with:
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```env
+# Neo4j Configuration
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your_password
+NEO4J_DATABASE=neo4j
 
-4. **Configure environment variables:**
-   Create a `.env` file in the project root:
-   ```env
-   # Neo4j Configuration
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USERNAME=neo4j
-   NEO4J_PASSWORD=your_password
-   NEO4J_DATABASE=neo4j
+# AWS Configuration
+AWS_REGION=us-west-2
+CLAUDE_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
+TITAN_MODEL_ID=amazon.titan-embed-text-v2:0
 
-   # AWS Configuration
-   AWS_REGION=us-west-2
-   CLAUDE_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
-   TITAN_MODEL_ID=amazon.titan-embed-text-v2:0
-
-   # CourtListener API (optional, for data extraction)
-   COURTLISTENER_API_KEY=your_api_key
-   ```
-
-### Commands to Run
-
-**Build the knowledge graph (one-time setup):**
-```bash
-# 1. Extract cases and build CSV files
-jupyter notebook "Knowledge Graph/ADAH_API_Extract.ipynb"
-jupyter notebook "Knowledge Graph/JSON_to_CSV_Converter.ipynb"
-
-# 2. Manually upload CSV files to Neo4j Aura using Data Importer
-#    (follow instructions in JSON_to_CSV_Converter.ipynb)
-
-# 3. Generate case summaries
-jupyter notebook "Knowledge Graph/Summarization_Pipeline.ipynb"
+# CourtListener API (optional, for data extraction)
+COURTLISTENER_API_KEY=your_api_key
 ```
 
-**Classify citations (one-time setup):**
-```bash
-# 1. Extract citation snippets
-jupyter notebook "Citation Classifier/Snippet_Retriever.ipynb"
+## How to Run
+## Step 1: Knowledge Graph Construction
+**Location:** `Knowledge Graph/`
 
-# 2. Run ensemble classifier (RECOMMENDED)
-jupyter notebook "Citation Classifier/Edge_Classifier_Snippet_Method_Ensemble.ipynb"
-```
+This step extracts legal case data and builds a Neo4j knowledge graph with cases, citations, and necessary attributes.
 
-**Label cases (one-time setup):**
-```bash
-jupyter notebook "Case Classifier/Case_Labeler.ipynb"
-```
+### 1.1 Extract Case Names from PDF
+**Notebook:** `ADAH_API_Extract.ipynb`
+- Extracts clean ADA case names from the ADAH (Americans with Disabilities Act Handbook) PDF
+- Normalizes case names (handles `v.`, `vs.`, punctuation variations)
+- Outputs a list of case names to `ada_case_names_only.txt`
 
-**Embed opinion chunks and launch app:**
-```bash
-# 1. Create embeddings
-jupyter notebook "UI/embed_opinion_chunks.ipynb"
+### 1.2 Fetch Cases from CourtListener API
+**Notebook:** `ADAH_API_Extract.ipynb`
+- Fetches ADAH "seed" cases by name from CourtListener API
+- Downloads cases cited by ADAH cases
+- Downloads cases that cite ADAH cases
+- Handles rate limiting and retries
 
-# 2. Create Neo4j vector index (run in Neo4j Browser)
-# CREATE VECTOR INDEX chunkEmbeddings IF NOT EXISTS
-# FOR (c:OpinionChunk) ON c.embedding
-# OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}}
+### 1.3 Format the Cases Ready for Neo4j Aura 
+**Notebook:** `JSON_to_CSV_Converter.ipynb`
+- Converts JSON case data to CSV files for Neo4j import
+- Prepares the following CSV files:
+  - `cases.csv` - Case nodes with properties (id, name, citation, decision_date, court_id, jurisdiction_id, etc.)
+  - `courts.csv` - Court nodes with court_level (1-5)
+  - `jurisdictions.csv` - Jurisdiction nodes
+  - `cites_to.csv` - Citation relationships between cases
+  - `opinion_chunks.csv` - OpinionChunk nodes (for long opinion text, if using chunked mode)
+  - `case_opinion_edges.csv` - Relationships linking cases to opinion chunks
+- These CSV files define the Neo4j graph structure:
+  - **Nodes:** `Case`, `Court`, `Jurisdiction`, `OpinionChunk`
+  - **Relationships:**
+    - `(:Case)-[:CITES_TO]->(:Case)` - citation relationships
+    - `(:Case)-[:HEARD_IN]->(:Court)` - court relationships
+    - `(:Case)-[:UNDER_JURISDICTION]->(:Jurisdiction)` - jurisdiction relationships
+    - `(:Case)-[:HAS_OPINION_CHUNK]->(:OpinionChunk)` - opinion text chunks
+- **Important:** Upload the CSV files manually through the Neo4j Aura Data Importer to construct the knowledge graph
+- **Note:** The `JSON_to_CSV_Converter.ipynb` notebook contains detailed instructions on the import schema and how to build the graph in Neo4j Aura
 
-# 3. Launch Streamlit app
-cd UI
-streamlit run app.py
-```
+### 1.4 Generate Case Summaries
+**Notebook:** `Summarization_Pipeline.ipynb`
+- Uses Amazon Bedrock (Mistral) to generate single-paragraph summaries
+- Writes summaries to `(:Case).opinion_summary`
+- Handles long opinions by chunking with token-based splitting
 
-### Example Inputs and Expected Outputs
+### 1.5 Exploratory Data Analysis
+**Notebook:** `EDA.ipynb`
+- Analyze the graph structure
+- Check data quality
+- Visualize relationships
 
-**Case Lookup Mode:**
-- **Input:** Search for "Guy Amir v. St. Louis University"
-- **Output:** Case detail page showing:
-  - Case metadata (name, citation, date, court)
-  - AI-generated summary
-  - Label: "Good Law" (46 incoming citations, primarily positive from Courts of Appeals)
-  - Detailed rationale explaining time-weighted citation analysis
-  - Table of citing cases with treatment labels and rationales
-  - CSV export option
+**How to Run:**
+1. Start with `ADAH_API_Extract.ipynb` to extract case names and fetch data
+2. Run `JSON_to_CSV_Converter.ipynb` to generate CSV files
+3. Manually upload the CSV files to Neo4j Aura using the Data Importer (follow instructions in the notebook)
+4. Run `Summarization_Pipeline.ipynb` to generate case summaries
+5. Use `EDA.ipynb` to explore your data
+---
 
-**Chatbot Mode:**
-- **Input:** "What cases discuss reasonable accommodation in the workplace?"
-- **Output:** AI agent response with:
-  - List of relevant cases with summaries
-  - Citation context from opinion text
-  - Treatment analysis (how later courts cited these cases)
+## Step 2: Citation Classification
+
+**Location:** `Citation Classifier/`
+
+This step classifies how cases cite each other by analyzing the context around citations in opinion text.
+
+### 2.1 Extract Citation Snippets
+
+**Notebook:** `Snippet_Retriever.ipynb`
+
+- Scans opinion text for citation references
+- Extracts snippets (context windows) around each citation
+- Writes snippets to `(:Case)-[:CITES_TO]->(:Case)` edges as `snippet_1`, `snippet_2`, etc.
+- Handles multiple citation formats and "Id." references
+
+**Key Features:**
+- Multiple search methods (exact citation, relaxed citation, case name matching)
+- Merges overlapping snippets
+- Expands to sentence boundaries
+- Tracks which method found each citation
+
+### 2.2 Classify Citation Treatment
+
+**Notebooks:** 
+- `Edge_Classifier_Snippet_Method_Claude.ipynb`
+- `Edge_Classifier_Snippet_Method_Ensemble.ipynb`
+- `Edge_Classifier_Snippet_Method_Llama3.ipynb`
+- `Edge_Classifier_Snippet_Method_Mistral.ipynb`
+
+Each notebook uses a different LLM to classify citation treatment:
+
+- **Positive** - Case is cited favorably (followed, approved, extended)
+- **Negative** - Case is cited unfavorably (distinguished, criticized, overruled)
+- **Neutral** - Case is cited neutrally (mentioned, referenced without judgment)
+- **Unknown** - Treatment cannot be determined
+
+**Process:**
+1. Load citation snippets from Neo4j edges
+2. Send snippets to LLM with classification prompt
+3. Parse LLM response to extract treatment label and rationale
+4. Write `treatment_label` and `treatment_rationale` back to edges
+
+### 2.3 Evaluate Classifiers
+
+**Notebook:** `evaluation_pipeline.ipynb`
+
+- Compares classifier performance against ground truth labels
+- Generates accuracy, precision, recall metrics
+- Produces comparison reports
+
+**How to Run:**
+
+1. Run `Snippet_Retriever.ipynb` to extract citation snippets
+2. Choose one of the classifier notebooks (Ensemble recommended for best accuracy)
+3. Run the classifier to label all citation edges
+4. Use `evaluation_pipeline.ipynb` to evaluate performance
 
 ---
 
-## How to Reproduce Results
+## Step 3: Case Classification
 
-### Citation Classification Evaluation
+**Location:** `Case Classifier/`
 
-**Command:**
-```bash
-jupyter notebook "Citation Classifier/evaluation_pipeline.ipynb"
+This step labels cases (Good, Bad, Moderate, Unknown) based on their citation history using time-weighted analysis.
+
+### 3.1 Label Cases from Citation History
+
+**Notebook:** `Case_Labeler.ipynb`  
+**Script:** `case_labeler.py`
+
+The case labeler analyzes incoming citations to each case and assigns a label:
+
+- **Good** - Predominantly positive citations (favorable treatment)
+- **Bad** - Predominantly negative citations (unfavorable treatment)
+- **Moderate** - Mixed or neutral citations
+- **Unknown** - Insufficient citation data
+
+**Algorithm:**
+1. Collect all incoming citations for each case
+2. Group citations by court level (Supreme Court, Appeals, District, etc.)
+3. Apply time-based weighting (recent citations weighted more heavily)
+4. Apply jurisdiction weights (optional)
+5. Compute weighted proportions of Positive/Negative/Neutral/Unknown treatments
+6. Apply thresholds to determine label
+7. Use "walk down" strategy: if highest court is mixed, check lower courts
+
+**Configuration Options:**
+- Proportion thresholds (how dominant a treatment must be)
+- Time-based weighting (how much recent citations matter)
+- Time window (date range for citations)
+- Jurisdiction weights (extra weight for specific jurisdictions)
+- Court selection strategy (highest court only vs. walk down)
+- Label priority order (tie-breaking)
+
+**How to Run:**
+
+```python
+from case_labeler import label_all_cases
+
+# Default configuration
+label_all_cases(
+    force=True,              # Re-label all cases (even if already labeled)
+    echo=True,               # Print progress
+    lower_level_court=True,  # Use walk-down strategy
+    include_unknown=True     # Include Unknown treatments in calculations
+)
+
+# Custom configuration
+label_all_cases(
+    force=True,
+    echo=True,
+    label_thresholds={"Pos_p": 0.60, "Neg_p": 0.60, "Neu_p": 0.55, "Unk_p": 0.55},
+    time_weight=[1.0, 3.0],  # MAX_WEIGHT = 3.0
+    jurisdictions={"California": 1.5, "New York": 1.2},
+    lower_level_court=True
+)
 ```
 
-**What it does:**
-- Compares ensemble model predictions against ground truth labels
-- Calculates accuracy, precision, recall, F1 for each treatment class
-- Generates confusion matrix and classification report
+---
 
-**Metrics come from:**
-- Evaluation script: `Citation Classifier/evaluation_pipeline.ipynb`
-- Ground truth labels must be manually created (sample set of ~100 citations)
-- Reported metrics: 67% accuracy, 70% precision on 3-class classification (Positive/Negative/Neutral)
+## Step 4: Web UI Development
 
-**Seed info:**
-- LLM calls use temperature=0 for reproducibility (Claude, Mistral, Llama)
-- Random seeds not applicable (deterministic LLM inference)
+**Location:** `UI/`
+
+This step builds a Streamlit web application with case lookup and chatbot functionality powered by GraphRAG.
+
+### 4.1 Embed Opinion Chunks
+
+**Notebook:** `embed_opinion_chunks.ipynb`
+
+- Embeds all `OpinionChunk` nodes using Amazon Titan embeddings
+- Stores embeddings in `(:OpinionChunk).embedding`
+- Creates Neo4j vector index `chunkEmbeddings` for semantic search
+
+**Why:** Enables semantic search over opinion text for GraphRAG queries.
+
+### 4.2 Build GraphRAG Agents
+
+**Notebook:** `GraphRAG_and_Agents.ipynb`  
+**Script:** `graph_rag_agents.py`
+
+Creates LangGraph agents with tools for:
+- Semantic search over opinion text
+- Text-to-Cypher database queries
+- Scenario-based case recommendations (Good/Bad/Moderate law)
+- Topic-based case discovery
+- Citation analysis (incoming/outgoing, filtered by treatment)
+
+**Agent Tools:**
+- `Search-opinion-text` - Find relevant opinion snippets
+- `Query-database` - Run Cypher queries
+- `Recommend-cases-for-scenario` - Find "Good law" cases for a scenario
+- `Recommend-bad-cases-for-scenario` - Find "Bad law" cases
+- `List-cases-for-topic` - Find cases discussing a topic
+- `List-incoming-citations-for-case` - Get citations to a case
+- And more...
+
+### 4.3 Build Streamlit App
+
+**Script:** `app.py`
+
+The main Streamlit application with two modes:
+
+#### Case Lookup Mode
+- Search for cases by name
+- View case details (name, citation, date, court, summary)
+- See citation evaluation (Good/Bad/Moderate/Unknown label)
+- Browse citing cases with treatment labels and rationales
+- Export citing cases to CSV
+
+#### Chatbot Mode
+- Natural language questions about ADA cases
+- Powered by GraphRAG agents
+- Answers include relevant cases and citations
+- Can handle:
+  - Case summaries
+  - Citation treatment questions
+  - Scenario-based recommendations
+  - Topic exploration
+  - Comparative analysis
+
+#### Case Label Configuration
+- Adjust case labeling parameters
+- Update case labels with new configuration
+- See methodology explanation
+
+**How to Run:**
+
+1. **Embed opinion chunks:**
+   ```bash
+   # Run embed_opinion_chunks.ipynb
+   ```
+
+2. **Create vector index in Neo4j:**
+   ```cypher
+   CREATE VECTOR INDEX chunkEmbeddings IF NOT EXISTS
+   FOR (c:OpinionChunk)
+   ON c.embedding
+   OPTIONS {
+     indexConfig: {
+       `vector.dimensions`: 1024,
+       `vector.similarity_function`: 'cosine'
+     }
+   }
+   ```
+
+3. **Start the Streamlit app:**
+   ```bash
+   cd UI
+   streamlit run app.py
+   ```
+
+   Or use the notebook: `run_app.ipynb`
+
+---
+
+## Running the Application
+
+### Complete Setup Workflow
+
+1. **Set up environment:**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+2. **Configure environment variables:**
+   - Create `.env` file with Neo4j and AWS credentials
+   - See [Configuration](#configuration) section
+
+3. **Build the knowledge graph:**
+   - Follow Step 1 instructions
+   - This creates the Neo4j database with cases and relationships
+
+4. **Classify citations:**
+   - Follow Step 2 instructions
+   - This labels citation edges with treatment labels
+
+5. **Label cases:**
+   - Follow Step 3 instructions
+   - This assigns Good/Bad/Moderate/Unknown labels to cases
+
+6. **Embed opinion chunks:**
+   - Run `UI/embed_opinion_chunks.ipynb`
+   - Create vector index in Neo4j
+
+7. **Launch the UI:**
+   ```bash
+   cd UI
+   streamlit run app.py
+   ```
+
+### Quick Start (Using Existing Data)
+
+If you already have a populated Neo4j database:
+
+1. Ensure embeddings exist (run `embed_opinion_chunks.ipynb` if needed)
+2. Ensure vector index exists (create with Cypher if needed)
+3. Launch the app:
+   ```bash
+   cd UI
+   streamlit run app.py
+   ```
 
 ---
 
 ## Configuration
 
-### Environment Variables
+### Streamlit Secrets
 
-**Neo4j:**
-- `NEO4J_URI` - Database connection string (e.g., `bolt://localhost:7687`)
-- `NEO4J_USERNAME` - Database username (default: `neo4j`)
-- `NEO4J_PASSWORD` - Database password
-- `NEO4J_DATABASE` - Database name (default: `neo4j`)
+For production deployment, configure Streamlit secrets (`.streamlit/secrets.toml`):
 
-**AWS Bedrock:**
-- `AWS_REGION` - AWS region (e.g., `us-west-2`)
-- `CLAUDE_MODEL_ID` - Claude model ID (e.g., `anthropic.claude-3-5-sonnet-20240620-v1:0`)
-- `TITAN_MODEL_ID` - Titan embeddings model ID (e.g., `amazon.titan-embed-text-v2:0`)
-
-**CourtListener API:**
-- `COURTLISTENER_API_KEY` - API key for case data extraction (optional)
-
-### Case Labeling Configuration
-
-The case labeling algorithm supports extensive tuning via `Case Classifier/case_labeler.py`:
-
-**Configurable Parameters:**
-- **Proportion Thresholds:** How dominant a treatment must be to assign a label (default: 0.55 for all classes)
-  - `Pos_p`: Threshold for "Good Law" label
-  - `Neg_p`: Threshold for "Bad Law" label
-  - `Neu_p`: Threshold for "Moderate Law" label
-  - `Unk_p`: Threshold for "Unknown" label
-- **Time Weighting:** How much recent citations matter (default: MAX_WEIGHT = 2.5)
-  - Recent citations get higher weight using exponential decay
-- **Time Window:** Date range for citations (default: earliest case to latest case)
-- **Jurisdiction Weights:** Extra weight for specific jurisdictions (e.g., `{"California": 1.5}`)
-- **Court Strategy:**
-  - `lower_level_court=True`: "Walk down" strategy (if highest court is mixed, check lower courts)
-  - `lower_level_court=False`: Only use highest court level
-- **Label Priority:** Tie-breaking order (default: Unknown > Negative > Neutral > Positive)
-
-**Example Configuration:**
-```python
-from case_labeler import label_all_cases
-
-label_all_cases(
-    force=True,
-    echo=True,
-    label_thresholds={"Pos_p": 0.60, "Neg_p": 0.60, "Neu_p": 0.55, "Unk_p": 0.55},
-    time_weight=[1.0, 3.0],  # MAX_WEIGHT = 3.0 for recent citations
-    jurisdictions={"California": 1.5, "New York": 1.2},
-    lower_level_court=True,
-    include_unknown=True
-)
+```toml
+[NEO4J]
+URI = "bolt://localhost:7687"
+USER = "neo4j"
+PASSWORD = "your_password"
+DATABASE = "neo4j"
 ```
+
+Or use environment variables in your deployment platform.
 
 ---
 
@@ -340,7 +530,6 @@ label_all_cases(
   - Used under AWS account with pay-per-use pricing
 
 **Frameworks and Tools:**
-- **LangChain / LangGraph:** MIT License
 - **Streamlit:** Apache License 2.0
 - **Neo4j Community Edition:** GPLv3 License (or Neo4j Aura cloud service)
 
@@ -348,8 +537,6 @@ label_all_cases(
 - **Wolters Kluwer:** Global leader in professional information services for legal, tax, healthcare, and compliance markets
 - Project conducted as UC Berkeley School of Information capstone (August 2025 - December 2025)
 
-**License:**
-- This project is released under the **MIT License** for portfolio and educational purposes
 
 ---
 
@@ -363,12 +550,4 @@ label_all_cases(
 | **Simran Gill** | simran.gill@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/simran-k-gill/) |
 | **Xueying (Wendy) Tian** | xtian9@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/wendy) |
 
----
 
-## Additional Documentation
-
-For detailed technical documentation on each pipeline step, see:
-- **Knowledge Graph Construction:** `Knowledge Graph/JSON_to_CSV_Converter.ipynb` (includes Neo4j schema and import instructions)
-- **Citation Classification:** `Citation Classifier/evaluation_pipeline.ipynb` (includes prompt templates and evaluation metrics)
-- **Case Labeling Algorithm:** `Case Classifier/case_labeler.py` (includes mathematical formulas and configuration examples)
-- **GraphRAG Architecture:** `UI/GraphRAG_and_Agents.ipynb` (includes agent tool definitions and conversation flows)
