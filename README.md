@@ -87,34 +87,41 @@ Chatbot demonstration: This example shows the system identifying cases that crit
 
 ```
 ai-powered-legal-citation-analyzer/
-├── Knowledge Graph/              # Step 1: Build Neo4j knowledge graph
-│   ├── ADAH_API_Extract.ipynb           # Extract case names, fetch CourtListener data
-│   ├── JSON_to_CSV_Converter.ipynb      # Format for Neo4j import
-│   ├── Summarization_Pipeline.ipynb     # Generate case summaries (Mistral-7B)
-│   └── EDA.ipynb                        # Exploratory data analysis
+├── Knowledge Graph/ # Step 1: Build Neo4j knowledge graph
+│ ├── ADAH_API_Extract.ipynb # Extract case names, fetch CourtListener data
+│ ├── JSON_to_CSV_Converter.ipynb # Format for Neo4j import
+│ ├── Summarization_Pipeline.ipynb # Generate case summaries (Mistral-7B)
+│ └── EDA.ipynb # Exploratory data analysis
 │
-├── Citation Classifier/          # Step 2: Classify citation edges
-│   ├── Snippet_Retriever.ipynb          # Extract citation context snippets
-│   ├── Edge_Classifier_Snippet_Method_Ensemble.ipynb  # Ensemble voting (BEST)
-│   ├── Edge_Classifier_Snippet_Method_Claude.ipynb
-│   ├── Edge_Classifier_Snippet_Method_Llama3.ipynb
-│   ├── Edge_Classifier_Snippet_Method_Mistral.ipynb
-│   └── evaluation_pipeline.ipynb        # Evaluate classifier performance
+├── Citation Classifier/ # Step 2: Classify citation edges
+│ ├── Snippet_Retriever.ipynb # Extract citation context snippets
+│ ├── Edge_Classifier_Snippet_Method_Ensemble.ipynb # Ensemble voting (BEST)
+│ ├── Edge_Classifier_Snippet_Method_Claude.ipynb
+│ ├── Edge_Classifier_Snippet_Method_Llama3.ipynb
+│ ├── Edge_Classifier_Snippet_Method_Mistral.ipynb
+│ └── evaluation_pipeline.ipynb # Evaluate classifier performance
 │
-├── Case Classifier/              # Step 3: Label cases (Good/Bad/Moderate)
-│   ├── Case_Labeler.ipynb               # Run case labeling workflow
-│   └── case_labeler.py                  # Time-weighted aggregation algorithm
+├── Case Classifier/ # Step 3: Label cases (Good/Bad/Moderate)
+│ ├── Case_Labeler.ipynb # Run case labeling workflow
+│ └── case_labeler.py # Time-weighted aggregation algorithm
 │
-├── UI/                           # Step 4: Streamlit web app + GraphRAG
-│   ├── app.py                           # Main Streamlit application (ENTRY POINT)
-│   ├── graph_rag_agents.py              # LangGraph agents + tools
-│   ├── embed_opinion_chunks.ipynb       # Create Titan embeddings
-│   ├── GraphRAG_and_Agents.ipynb        # Test GraphRAG agents
-│   └── run_app.ipynb                    # Launch app from notebook
+├── UI/ # Step 4: Streamlit web app + GraphRAG
+│ ├── app.py # Main Streamlit application (ENTRY POINT)
+│ ├── graph_rag_agents.py # LangGraph agents + tools
+│ ├── embed_opinion_chunks.ipynb # Create Titan embeddings
+│ ├── GraphRAG_and_Agents.ipynb # Test GraphRAG agents
+│ └── run_app.ipynb # Launch app from notebook
 │
-├── requirements.txt              # Python dependencies
-├── .env.example                  # Environment variable template
-└── README.md
+├── UI Images/ # Screenshots for README
+│ ├── homepage.png # Application homepage screenshot
+│ ├── case-detail-view.png # Case detail view screenshot
+│ ├── configuration-panel.png # Configuration panel screenshot
+│ └── chatbot-interface.png # Chatbot interface screenshot
+│
+├── Data/ # Data files
+├── Slides/ # Project presentation slides
+├── requirement.txt # Python dependencies
+└── README.md # Project documentation
 ```
 
 ---
