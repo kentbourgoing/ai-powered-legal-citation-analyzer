@@ -1,6 +1,6 @@
 # AI-Powered Legal Citation Analyzer
 
-An explainable AI legal research platform that helps attorneys assess whether a case remains "Good Law" by analyzing citation treatment across thousands of ADA decisions with configurable, transparent reasoning.
+A professional legal research platform that transforms hours of manual citation analysis into instant insights. Attorneys search any case and immediately see whether it's "Good Law" with AI-generated explanations showing exactly how courts have treated it over time, then export citation reports or ask follow-up questions through an intelligent chatbot that understands legal reasoning.
 
 ---
 ## Table of Contents
