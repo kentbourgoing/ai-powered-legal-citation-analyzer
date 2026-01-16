@@ -3,12 +3,56 @@
 An explainable AI legal research platform that helps attorneys assess whether a case remains "Good Law" by analyzing citation treatment across thousands of ADA decisions with configurable, transparent reasoning.
 
 ---
+## Table of Contents
+- [Problem and Goal](#problem-and-goal)
+- [Approach](#approach)
+- [Results](#results)
+- [Demo and Screenshots](#demo-and-screenshots)
+- [Tech/Methods](#techmethods)
+- [Repo Structure](#repo-structure)
+- [Prerequisites](#prerequisites)
+- [How to Run](#how-to-run)
+- [Configuration](#configuration)
+- [Limitations and Next Steps](#notes-limitations-and-next-steps)
+- [Credits](#credits--data--licenses)
+- [Team Members](#team-members)
+---
 
 ## Problem and Goal
 
 - **Problem:** Traditional legal citators (Shepard's, KeyCite) are proprietary black boxes that don't explain how they classify case law strength. Attorneys spend hours manually reviewing citations to understand if precedents remain valid.
 - **Why It Matters:** Legal professionals need transparent, customizable tools to assess case validity efficiently. Explainability builds trust and allows attorneys to tune analysis to their specific practice areas and risk tolerance.
 - **Goal:** Build an MVP that matches traditional citator accuracy while providing paragraph-level rationales and user-configurable scoring parameters, delivered through a 14-week client capstone with Wolters Kluwer.
+
+---
+
+## Approach
+
+1. **Knowledge Graph Construction:** Built ETL pipeline to extract ADA cases from ADAH PDF and CourtListener API, normalized case names and metadata, then constructed Neo4j graph schema linking cases, citations, courts, jurisdictions, and opinion text chunks
+2. **Opinion Summarization:** Implemented token-based chunking strategy for long legal opinions and generated concise summaries using Mistral-7B via Amazon Bedrock
+3. **Citation Snippet Extraction:** Developed regex-based pattern matching to locate citation references within opinions, extract surrounding context windows, resolve "Id." references, and merge overlapping snippets for classification
+4. **Ensemble Citation Classification:** Designed 3-model LLM voting system with prompt engineering to classify citation treatment and generate paragraph-level rationales explaining how citing courts used precedent
+5. **Case Labeling Algorithm:** Implemented time-weighted aggregation that groups citations by court level, applies recency and jurisdiction weights, calculates treatment proportions, then assigns labels using configurable thresholds with court hierarchy "walk down" fallback
+6. **GraphRAG System:** Embedded opinion chunks using Amazon Titan (1024-dim), built Neo4j vector index, and orchestrated LangGraph agent with tool suite for hybrid retrieval (semantic + graph traversal)
+7. **UI Development:** Created dual-mode Streamlit interface enabling both structured case lookup with citation analysis and conversational queries through GraphRAG chatbot with real-time parameter tuning
+8. **Evaluation and Iteration:** Validated against ground truth labels, analyzed error patterns across court levels, and refined prompts and thresholds through weekly stakeholder feedback sessions
+
+---
+
+## Results
+
+### Technical Deliverables
+- **Neo4j Legal Knowledge Graph:** 3,500 case nodes, 5,500 citation edges covering ADA Title II decisions with full opinion text, metadata, and court hierarchy
+- **Ensemble Citation Classifier:** 67% accuracy, 70% precision on treatment classification (Positive/Negative/Neutral) using 3-model majority voting (Claude 3.5 Sonnet, Mistral-7B, Llama 3-70B)
+- **Configurable Case Labeling System:** Time-weighted algorithm with 6 tunable parameters (proportion thresholds, time decay, jurisdiction weights, court strategy) for practice area customization
+- **Agentic GraphRAG Chatbot:** LangGraph agent with 8+ tools (semantic search, text-to-Cypher, case recommendations, filtering) for natural language legal research
+- **Production Web Application:** Dual-mode Streamlit interface with case lookup, citation analysis, CSV export, and conversational Q&A
+
+### Key Outcomes
+- **Explainability:** 100% of classifications include LLM-generated rationales with citation context, addressing black-box concerns in legal AI
+- **Performance:** Sub-second vector similarity retrieval over 3,500+ cases using cosine similarity on chunked opinion text
+- **User Control:** Attorneys can adjust sensitivity, recency bias, and court weighting to match specific legal practice areas
+- **Client Success:** Delivered complete MVP on 14-week schedule with three milestone presentations to Wolters Kluwer stakeholders demonstrating business value and production readiness
 
 ---
 
@@ -33,41 +77,6 @@ The application allows users to configure case labeling parameters, including pr
 ![Chatbot Interface](UI%20Images/chatbot-interface.png)
 
 Chatbot demonstration: This example shows the system identifying cases that criticize "Access Now, Inc. v. Southwest Airlines Co." and explaining how courts narrowed its holding, illustrating the platform's ability to deliver transparent, paragraph-level legal reasoning.
-
----
-
-## What we delivered
-
-- **Dual-Mode Streamlit Web Application:** Case lookup interface for targeted citation analysis + AI chatbot for natural language legal research
-- **Neo4j Legal Knowledge Graph:** 3,500+ case nodes, 5,500+ citation edges with ADA decisions, opinions, and metadata
-- **Ensemble Citation Classifier:** 3-model LLM pipeline (Claude 3.5 Sonnet, Mistral-7B, Llama 3-70B) with majority voting for treatment classification
-- **Configurable Case Labeling Algorithm:** Time-weighted scoring system that aggregates citation signals across court levels with adjustable parameters
-- **Agentic GraphRAG Chatbot:** LangGraph-orchestrated agent with 8+ tools for semantic search, text-to-Cypher queries, and case recommendations
-- **Client Deliverables:** Three milestone presentations to Wolters Kluwer stakeholders demonstrating MVP functionality and business value
-
----
-
-## Results
-
-- **Citation Classification Accuracy:** 67% accuracy, 70% precision on treatment classification (Positive/Negative/Neutral) using ensemble voting
-- **Knowledge Graph Scale:** 3,500 case nodes, 5,500 citation edges extracted from ADAH handbook and CourtListener API
-- **Explainability:** 100% of classifications include LLM-generated paragraph-level rationales explaining citation treatment context
-- **User Configurability:** 6+ adjustable parameters (proportion thresholds, time weighting, jurisdiction weights, court hierarchy strategy)
-- **Retrieval Performance:** GraphRAG system with vector similarity search (1024-dim Titan embeddings, cosine similarity) over chunked opinion text
-- **Client Engagement:** Delivered on schedule through 14-week capstone with weekly stakeholder meetings and three formal milestone presentations
-
----
-
-## Approach
-
-1. **Knowledge Graph Construction:** Extracted 3,500+ ADA cases from ADAH PDF and CourtListener API, normalized case names, built ETL pipeline to construct Neo4j graph with cases, citations, courts, jurisdictions, and opinion chunks
-2. **Opinion Summarization:** Generated single-paragraph case summaries using Mistral-7B via Amazon Bedrock with token-based chunking for long opinions
-3. **Citation Snippet Extraction:** Developed pattern-matching pipeline to locate citation references in opinion text, extract context windows (snippets), handle "Id." references, and merge overlapping snippets
-4. **Ensemble Citation Classification:** Built 3-model LLM ensemble (Claude, Mistral, Llama) with majority voting and prompt engineering to classify citation treatment (Positive/Negative/Neutral/Unknown) and generate rationales
-5. **Case Labeling Algorithm:** Designed time-weighted aggregation system that groups incoming citations by court level, applies recency/jurisdiction weights, computes treatment proportions, and assigns Good/Bad/Moderate/Unknown labels using configurable thresholds and "walk down" strategy across court hierarchy
-6. **GraphRAG System:** Created vector embeddings (Amazon Titan) for all opinion chunks, built Neo4j vector index, developed LangGraph agent with 8+ tools (semantic search, text-to-Cypher, recommendations, filtering) for natural language queries
-7. **UI Development:** Built dual-mode Streamlit application with case lookup (search, detail view, citation analysis, CSV export) and chatbot (GraphRAG-powered Q&A) with real-time parameter configuration
-8. **Evaluation and Iteration:** Conducted comparative evaluation against ground truth labels, performed error analysis, iterated on prompts and thresholds based on stakeholder feedback
 
 ---
 
