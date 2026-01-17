@@ -564,6 +564,6 @@ Or use environment variables in your deployment platform.
 | **Hunter Tonn** | hunter.tonn@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/hunter-tonn/) |
 | **Kent Bourgoing** | kent1bp@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/kent-bourgoing-124444168/) |
 | **Simran Gill** | simran.gill@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/simran-k-gill/) |
-| **Xueying (Wendy) Tian** | xtian9@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/wendy) |
+| **Xueying (Wendy) Tian** | xtian9@berkeley.edu | [LinkedIn](https://www.linkedin.com/in/wendytian2024ds/) |
 
 
